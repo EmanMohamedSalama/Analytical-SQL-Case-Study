@@ -1,0 +1,64 @@
+Q1
+
+--we want to expand our business and analyse our store revenu to decide 
+in which countries we shoud lunch new branches 
+and in which countries we need to close our store to decrease our lose
+
+--so first we need to rank our countries by the revenu  
+
+
+select distinct country as country, sum (quantity*unitprice) as revenu,
+        dense_rank () over (order by sum (quantity*unitprice) desc ) as rank
+from online_retail
+group by country
+order by rank;
+
+
+--now we need to break down to know highest and lowest revenu per each country
+
+
+select distinct (country) as country,
+        last_value (sum (quantity*unitprice)) over (partition by (country)
+                    order by (sum (quantity*unitprice))
+                    rows between unbounded preceding and unbounded following) as highest_revnue,
+        last_value (sum (quantity*unitprice)) over (partition by (country)
+                    order by sum (quantity*unitprice) desc
+                    rows between unbounded preceding and unbounded following) as lowest_revnue
+from online_retail
+group by country,invoiceno;
+
+
+-- so we need to focus more on the lowest contry and make our fast action due to this result
+
+--lets know the country which have the highest and lowest number of customers to define the problem more 
+
+
+select count (distinct customerid)as customer_count, country,
+        dense_rank () over (order by count( distinct customerid) desc ) as rank
+from online_retail
+group by country;
+
+--now we need to know how many costumer visit our store daily per country :
+
+select count (distinct customerid) as customer_count, country, to_timestamp(invoicedate,'MM/DD/YYYY') as day_date,
+          dense_rank () over (order by count( distinct customerid) desc) as rank
+from online_retail
+group by country,to_timestamp(invoicedate,'MM/DD/YYYY')
+order by rank;
+
+
+-- so we need to take our fast action regarding the country with the lowest rank 
+--now we need to break down to know what is the highest product per each country 
+--to ensure that we provide our branches with sutiable quantity with it
+
+---highest product per each country
+
+select distinct (description) as highest_product, country,
+        last_value (count (description)) over (partition by (country)
+                    order by (count (description))
+                    rows between unbounded preceding and unbounded following) as product_count
+from online_retail
+group by description, country;
+
+-- now we can make our descions regading to our analysis results.
+
